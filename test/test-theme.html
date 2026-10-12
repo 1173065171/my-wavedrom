@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>WaveDrom themeable demo</title>
+<!-- build: npx esbuild ./lib/wave-view-global.js --bundle --outfile=build/wave-view.js -->
+<script src="../build/wave-view.js"></script>
+<style>
+  :root {
+    --panel: #ffffff;
+    --text: #1d1d1f;
+    --accent: #5b5bd6;
+  }
+  :root[data-theme="dark"] {
+    --panel: #1e1f24;
+    --text: #e6e6e6;
+    --accent: #8f8ff5;
+  }
+  body { background: var(--panel); color: var(--text); font-family: system-ui, sans-serif; margin: 16px; }
+  /* host app maps its own tokens onto WaveDrom variables */
+  :root {
+    --wd-fg: var(--text);
+    --wd-bg: var(--panel);
+    --wd-grid: color-mix(in srgb, var(--text) 35%, transparent);
+    --wd-arc: var(--accent);
+    --wd-info: var(--accent);
+    --wd-font-family: ui-monospace, Menlo, monospace;
+    --wd-data-3: color-mix(in srgb, var(--accent) 25%, var(--panel));
+    --wd-data-4: color-mix(in srgb, #e5a50a 30%, var(--panel));
+    --wd-data-5: color-mix(in srgb, #3584e4 30%, var(--panel));
+  }
+  wave-view { display: block; margin: 8px 0; }
+</style>
+</head>
+<body>
+<button id="toggle">toggle theme</button>
+<wave-view id="a">
+{ signal: [
+  { name: 'clk',  wave: 'p.....|...' },
+  { name: 'data', wave: 'x.345x|=.x', data: ['head', 'body', 'tail', 'data'], node: '.a........' },
+  { name: 'req',  wave: '0.1..0|1.0', node: '....b.....' },
+  {},
+  { name: 'ack',  wave: '1.....|01.' }
+], edge: ['a~>b t1'] }
+</wave-view>
+<wave-view id="b" skin="narrow"></wave-view>
+<script>
+  document.getElementById('b').source = {signal: [
+    {name: 'clk', wave: 'p.......'},
+    ['bus', {name: 'addr', wave: 'x3.x4..x', data: 'A1 A2'}, {name: 'rd', wave: '0.1.0...'}]
+  ]};
+  document.getElementById('toggle').onclick = () => {
+    const r = document.documentElement;
+    r.dataset.theme = r.dataset.theme === 'dark' ? 'light' : 'dark';
+  };
+</script>
+</body>
+</html>

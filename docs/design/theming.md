@@ -14,6 +14,8 @@
 
 ## 2. 方案总览
 
+> 实现时改为运行时转换（`lib/theme.js`），不再改 `svg2js.js`，见第 10 节。
+
 ```
 unpacked/skins/default.svg
         │  bin/svg2js.js（扩展：class 语义化 + 颜色替换为 var()）
@@ -132,3 +134,29 @@ CLI 新增 `--theme <file.json>`，接收一份变量表，渲染时直接写入
 5. 测试：对 `test/*.json5` 做 SVG 快照；用 Playwright 在亮/暗两套变量下截图对比；验证删除第一张图后其余图仍正常。
 
 旧皮肤（`default`、`narrow` 等）保留不动，`themeable` 作为新增皮肤，现有调用方不受影响。
+
+## 10. 实施记录（第一轮）
+
+与上文设计的差异和取舍：
+
+- **运行时转换代替构建期生成。** `lib/theme.js` 的 `makeThemeable(skin)` 直接把任意现有皮肤（6 套都已验证）转换为语义 class + `var(--wd-*)`，结果按皮肤缓存。分类依据是样式声明加所在 def 组的 id（如 `vvv-3` → `wd-data-3`，`gap` → `wd-bg`，`arrow*` → `wd-arc*`），不依赖 `sN` 的编号。
+- **变量默认值写在 `var()` 的回退值里**，不在 `.wd-root` 上声明。主项目在 `:root` 或任意祖先上设置变量即可生效，无需比拼选择器优先级。`--wd-data-2`（`=` 数据格）默认跟随 `--wd-bg`。
+- **渲染代码的内联 `style` 改为 class + 表现属性**（如 `class="wd-arc" stroke="#0041c4"`）。表现属性优先级低于 CSS，旧皮肤下由属性生效，主题皮肤下由 `.wd-root .wd-arc` 覆盖。旧皮肤的渲染结果经 Chromium 截图逐像素比对与改动前一致。
+- **`notFirstSignal` 保留**，供 `processAll` 旧路径使用；新路径用 `renderAny(..., options)` 的 `idPrefix` / `defs: 'sprite'`。传入 `options` 时每张图都独立读取皮肤几何参数。
+- **不再修改共享的皮肤对象**：`insert-svg-template.js` 复制根节点，`<style>`/`<defs>` 只读复用。
+
+已知限制：
+
+- sprite 模式下箭头 marker 的颜色变量从 sprite 所在位置（`body`）继承，而不是从引用它的图继承。单张图上局部覆盖 `--wd-arc` 时箭头头部不跟随，统一在 `:root` 设置不受影响。
+- 导出时 `color-mix()` 之类的值会原样写入。浏览器能打开，但部分非浏览器 SVG 渲染器不支持。
+- 未完成：文字宽度按实际字体测量（P5）；`reg` / `assign` 图尚未主题化。
+
+新增 / 修改的入口：
+
+| 文件 | 内容 |
+|---|---|
+| `lib/theme.js` | `makeThemeable`、`themeCss(vars, {resolve})`、`renderSprite`、`prefixDefs`、`defaults` |
+| `lib/wave-view.js` + `.d.ts` | `<wave-view>` 元素、`exportSvg`；包导出 `wavedrom/wave-view` |
+| `lib/wave-view-global.js` | 浏览器 bundle 入口（`npm run view` → `build/wave-view.js`） |
+| `bin/cli.js` | `--skin`、`--themeable`、`--theme <json5>` |
+| `test/theme.js`、`test/test-theme.html` | 单元测试；亮/暗切换演示页 |
