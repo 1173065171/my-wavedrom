@@ -40,7 +40,7 @@
   ],
   "scripts": {
     "test": "npm-run-all eslint nyc",
-    "eslint": "eslint lib bin",
+    "eslint": "eslint lib bin tools/fsdb2wave/node",
     "nyc": "nyc -r=lcov -r=text mocha test",
     "dist": "esbuild ./lib/wave-drom.js --bundle --format=iife --outfile=wavedrom.js",
     "watch.dist": "esbuild ./lib/wave-drom.js --bundle --format=iife --outfile=wavedrom.js --watch",

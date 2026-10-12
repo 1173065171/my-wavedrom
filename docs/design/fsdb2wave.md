@@ -60,7 +60,7 @@ fsdb2wave <input.fsdb|input.vcd>
 | 码 | 含义 |
 |---|---|
 | 0 | 成功（可能带 warnings） |
-| 1 | 文件读取 / 解析失败 |
+| 1 | 参数错误、文件读取 / 解析失败、窗口内时钟沿不足 2 个 |
 | 2 | 违反约束（信号数、cycle 数超限，且未指定 `--truncate`） |
 | 3 | 信号或时钟路径不存在（错误信息列出最相近的候选路径） |
 | 4 | backend 不可用（未找到 Verdi 库 / `fsdb2vcd`，或无 License） |
@@ -165,3 +165,16 @@ type Fsdb2WaveResult =
 - 对每个夹具做 WaveJSON 快照测试，并把输出交给 `lib/index.js` 的 `renderAny` 渲染，确保产物可渲染。
 - 在有 Verdi 的机器上，用同一设计生成 FSDB，验证 `ffr` 与 `vcd` 两个 backend 的输出逐字节一致。
 - 约束测试：超限报错 / `--truncate` 截断、路径不存在时的候选提示、backend 缺失时退出码 4。
+
+## 10. 实施记录（第一轮）
+
+代码在 `tools/fsdb2wave/`（Python ≥ 3.8，仅标准库），用法见该目录 README。
+
+- **已实现**：VCD backend（流式读取，按标识码过滤，读到窗口最后一个沿即停止）、`fsdb2vcd` backend（调用外部工具转出 VCD 后读取）、第 3 节全部 CLI 参数、退出码与 stderr JSON、第 4–7 节的约束、采样、映射和输出格式。另提供 Node 封装 `tools/fsdb2wave/node`（带 `.d.ts`），供 TS agent 以子进程方式调用。
+- **未实现**：`ffr` backend 只定义了接口（可选模块 `fsdb2wave_ffr`，见 `backends.py`），C++/pybind11 实现需要在装有 Verdi 的机器上按所装版本的 FsdbReader API 编写和验证。
+- **同一时间戳整体处理**：读取时按时间戳成组处理变化，时钟沿与同一时刻的数据变化不论在文件里谁先谁后，都落在窗口起点的同一侧（测试用倒序夹具验证）。
+- **门控时钟**：在某个 cycle 内恰好是“沿上升 + 周期中段下降”的 1 bit 信号，输出该 cycle 为 `p`（反相为 `n`）；同一信号的其余电平改用 `l`/`h`，与 `p` 衔接时不会出现 `0`/`1` 的过渡斜线。自由运行且与窗口对齐的分频时钟仍输出 `p`/`n` + `period: k`。
+- **部分 x 的总线**：hex 每 4 bit 一位，含 x 的位显示 `x`、全 z 显示 `z`，不加 `h` 前缀；前导 0 省略。超过 16 个字符的标签中间省略并记 `bus-truncated`。
+- **`--start @N`**：N 是从 0 开始的有效沿序号，与 `head.tick` 一致。
+- **性能**：纯 Python 读取 VCD 约 7MB/s。窗口靠前时只读文件头部（9MB 文件、窗口在开头时 0.07s，在末尾时 1.25s）；GB 级 FSDB 需要 `ffr` backend 才能做到只读选中范围。
+- **测试**：`tests/make_fixtures.py` 生成确定性的 VCD 夹具，覆盖握手、总线、部分 x、高阻、real、event、别名、分频/门控时钟和毛刺；18 个 unittest，其中一项把输出交给 `lib/index.js` 的 `renderAny` 确认可渲染。CI 新增 Python 3.8 / 3.12 任务。
