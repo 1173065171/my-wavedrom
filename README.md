@@ -68,6 +68,9 @@ wavedrom --input source.json5 --indent 2 > output.svg
 
 *   `-i`, `--input <path>`: (Required) Path to the WaveJSON source file.
 *   `-t`, `--indent <number>`: Text indent in the output SVG.
+*   `-s`, `--skin <name>`: Skin geometry (`default`, `narrow`, `lowkey`, `dark`); overrides `config.skin`.
+*   `--themeable`: Emit semantic classes styled by `--wd-*` CSS variables (see [Theming](#theming)).
+*   `--theme <path>`: JSON5 map of `--wd-*` values, baked into a standalone SVG.
 *   `-h`, `--help`: Show help message.
 
 ### Export to PNG
@@ -137,6 +140,35 @@ ObservableHQ examples: (https://observablehq.com/collection/@drom/wavedrom)
 Blogger integration: (http://wavedrom.blogspot.com/2011/08/wavedrom-digital-timing-diagram-in-your.html)
 
 MediaWiki integration: (https://github.com/Martoni/mediawiki_wavedrom)
+
+### Theming
+
+The `<wave-view>` element renders live, themeable diagrams that follow the host page's
+design tokens through `--wd-*` CSS variables (`fg`, `bg`, `grid`, `arc`, `font-family`,
+`line-width`, `data-2` … `data-9`, …). Brick definitions are shared once per page, and
+each diagram is independent.
+
+```js
+const { define } = require('wavedrom/wave-view');
+define(); // registers <wave-view>
+
+const el = document.createElement('wave-view');
+el.source = { signal: [{ name: 'clk', wave: 'p...' }] }; // object or JSON5 text
+document.body.append(el);
+el.toSVG(); // standalone SVG with current theme values frozen in
+```
+
+```css
+:root {
+  --wd-fg: var(--color-text);
+  --wd-bg: var(--color-surface);
+  --wd-arc: var(--color-accent);
+  --wd-font-family: var(--font-mono);
+}
+```
+
+See `test/test-theme.html` (build the bundle with `npm run view`) and
+`docs/design/theming.md`.
 
 ## Editor
 

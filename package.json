@@ -18,6 +18,11 @@
   },
   "exports": {
     ".": "./lib/index.js",
+    "./theme": "./lib/theme.js",
+    "./wave-view": {
+      "types": "./lib/wave-view.d.ts",
+      "default": "./lib/wave-view.js"
+    },
     "./package.json": "./package.json",
     "./skins/*": "./skins/*"
   },
@@ -35,10 +40,11 @@
   ],
   "scripts": {
     "test": "npm run eslint && npm run c8",
-    "eslint": "eslint lib bin",
+    "eslint": "eslint lib bin tools/fsdb2wave/node",
     "c8": "c8 -r=lcov -r=text mocha test",
     "dist": "esbuild ./lib/wave-drom.js --bundle --format=iife --outfile=wavedrom.js",
     "watch.dist": "esbuild ./lib/wave-drom.js --bundle --format=iife --outfile=wavedrom.js --watch",
+    "view": "esbuild ./lib/wave-view-global.js --bundle --outfile=build/wave-view.js",
     "dist.min": "node -e \"const banner = require('child_process').execSync('node ./bin/header.js < /dev/null').toString(); require('child_process').execSync('esbuild ./lib/wave-drom.js --bundle --format=iife --minify --outfile=wavedrom.min.js --banner:js=\\\"' + banner.trim() + '\\\"')\"",
     "unpkg": "node ./bin/unpkg.js",
     "unpkg.min": "node ./bin/unpkg.js --minify",

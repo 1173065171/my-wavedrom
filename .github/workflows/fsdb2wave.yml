@@ -1,0 +1,51 @@
+# Kept apart from ci.yml (which mirrors upstream wavedrom) so upstream CI
+# changes merge without conflicts.
+name: fsdb2wave
+
+on:
+  push:
+    paths:
+      - 'tools/fsdb2wave/**'
+      - 'lib/**'
+      - 'skins/**'
+      - 'package.json'
+      - '.github/workflows/fsdb2wave.yml'
+  pull_request:
+    paths:
+      - 'tools/fsdb2wave/**'
+      - 'lib/**'
+      - 'skins/**'
+      - 'package.json'
+      - '.github/workflows/fsdb2wave.yml'
+
+jobs:
+  test:
+    name: Python 3.12 + WaveDrom render check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install (for the WaveDrom render check)
+        run: npm i
+
+      - name: Test
+        run: python -m unittest discover -s tools/fsdb2wave/tests -v
+
+  min-python:
+    # oldest supported Python; the render check skips itself without node
+    name: Python 3.8 (minimum)
+    runs-on: ubuntu-latest
+    container: python:3.8-slim
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Test
+        run: python -m unittest discover -s tools/fsdb2wave/tests -v
